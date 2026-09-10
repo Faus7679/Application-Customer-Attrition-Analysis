@@ -3,7 +3,7 @@
 ## Introduction
 This report analyzes the IBM Telco Customer Churn data set to explain why customers leave a telecommunications provider for competitors. The workflow is reproducible from this repository and supports the assignment with data preparation notes, exploratory findings, logistic regression modeling, and visual evidence.
 
-**Data source used for this run:** `/home/runner/work/Application-Customer-Attrition-Analysis/Application-Customer-Attrition-Analysis/data/WA_Fn-UseC_-Telco-Customer-Churn.csv` (cached repository CSV). When the assignment Excel workbook is unavailable, the repository falls back to the canonical public CSV mirror of the same Telco churn data.
+**Data source used for this run:** `data/WA_Fn-UseC_-Telco-Customer-Churn.csv` (cached repository CSV). When the assignment Excel workbook is unavailable, the repository falls back to the canonical public CSV mirror of the same Telco churn data.
 
 ## Part I. Data Preparation and Exploration
 

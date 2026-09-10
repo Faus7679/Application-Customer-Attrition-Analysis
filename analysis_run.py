@@ -67,7 +67,8 @@ def load_dataset(cli_path: str | None) -> tuple[pd.DataFrame, str, str]:
     else:
         df = pd.read_csv(source)
 
-    df.to_csv(RAW_DATA_PATH, index=False)
+    if source in {DEFAULT_REMOTE_URL, str(RAW_DATA_PATH)}:
+        df.to_csv(RAW_DATA_PATH, index=False)
     return df, source, source_label
 
 
@@ -116,6 +117,19 @@ def format_p_value(value: float) -> str:
 def prettify_feature_name(feature: str) -> str:
     feature = feature.replace('num__', '').replace('cat__', '')
     return feature.replace('_', ' = ', 1).replace('_', ' ')
+
+
+def display_source_for_report(source: str, source_label: str) -> str:
+    source_path = Path(source)
+    if source.startswith('http://') or source.startswith('https://'):
+        return f'`{source}` ({source_label})'
+    try:
+        relative_path = source_path.resolve().relative_to(REPO_ROOT.resolve())
+        return f'`{relative_path.as_posix()}` ({source_label})'
+    except ValueError:
+        if source_label == 'user supplied file':
+            return '`--input-path` supplied local file (user supplied file)'
+        return source_label
 
 
 def summarise_numeric(df: pd.DataFrame, columns: list[str]) -> list[list[object]]:
@@ -275,7 +289,11 @@ def fit_models(df: pd.DataFrame) -> dict[str, object]:
         index=X_train.index,
     )
     statsmodels_X_train = sm.add_constant(statsmodels_X_train)
-    statsmodels_model = sm.Logit(y_train, statsmodels_X_train).fit(disp=False, maxiter=200)
+    statsmodels_model = sm.GLM(
+        y_train,
+        statsmodels_X_train,
+        family=sm.families.Binomial(),
+    ).fit(maxiter=200, disp=False)
     summary_frame = statsmodels_model.summary2().tables[1].copy()
     summary_frame['odds_ratio'] = np.exp(summary_frame['Coef.'])
     summary_frame['ci_lower_or'] = np.exp(summary_frame['Coef.'] - 1.96 * summary_frame['Std.Err.'])
@@ -379,6 +397,7 @@ def build_report(df: pd.DataFrame, results: dict[str, object], source: str, sour
     significant = summary_frame.drop(index='const').query('`P>|z|` < 0.05').copy()
     significant = significant.sort_values('P>|z|').head(10)
     predictor_count = len(results['numeric_columns']) + len(results['categorical_columns'])
+    source_display = display_source_for_report(source, source_label)
 
     numeric_summary = summarise_numeric(df, results['numeric_columns'])
     categorical_summary = summarise_categorical(
@@ -430,7 +449,7 @@ def build_report(df: pd.DataFrame, results: dict[str, object], source: str, sour
 ## Introduction
 This report analyzes the IBM Telco Customer Churn data set to explain why customers leave a telecommunications provider for competitors. The workflow is reproducible from this repository and supports the assignment with data preparation notes, exploratory findings, logistic regression modeling, and visual evidence.
 
-**Data source used for this run:** `{source}` ({source_label}). When the assignment Excel workbook is unavailable, the repository falls back to the canonical public CSV mirror of the same Telco churn data.
+**Data source used for this run:** {source_display}. When the assignment Excel workbook is unavailable, the repository falls back to the canonical public CSV mirror of the same Telco churn data.
 
 ## Part I. Data Preparation and Exploration
 
