@@ -37,6 +37,7 @@ PREPARED_DATA_PATH = DATA_DIR / 'prepared_telco_customer_churn.csv'
 REPORT_PATH = REPORTS_DIR / 'logistic_regression_analysis_report.md'
 SUMMARY_PATH = REPORTS_DIR / 'logistic_regression_model_summary.txt'
 SEED = 42
+MODEL_EXCLUDED_COLUMNS = {'customerID', 'Churn', 'ChurnFlag', 'PhoneService', 'InternetService'}
 
 sns.set_theme(style='whitegrid', palette='deep')
 
@@ -62,7 +63,7 @@ def resolve_input_path(cli_path: str | None) -> tuple[str, str]:
 
 def load_dataset(cli_path: str | None) -> tuple[pd.DataFrame, str, str]:
     source, source_label = resolve_input_path(cli_path)
-    if source.lower().endswith('.xlsx'):
+    if Path(source).suffix.lower() in {'.xlsx', '.xls'}:
         df = pd.read_excel(source)
     else:
         df = pd.read_csv(source)
@@ -212,7 +213,7 @@ def plot_churn_rate_by_category(df: pd.DataFrame, columns: list[str]) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     for ax, column in zip(axes.flatten(), columns):
         rates = (
-            df.groupby(column, observed=False)['ChurnFlag']
+            df.groupby(column)['ChurnFlag']
             .mean()
             .sort_values(ascending=False)
             .mul(100)
@@ -238,7 +239,7 @@ def plot_correlation_heatmap(df: pd.DataFrame, numeric_columns: list[str]) -> No
 
 def fit_models(df: pd.DataFrame) -> dict[str, object]:
     numeric_columns = ['tenure', 'MonthlyCharges', 'TotalCharges']
-    feature_columns = [column for column in df.columns if column not in {'customerID', 'Churn', 'ChurnFlag'}]
+    feature_columns = [column for column in df.columns if column not in MODEL_EXCLUDED_COLUMNS]
     categorical_columns = [column for column in feature_columns if column not in numeric_columns]
 
     X = df[feature_columns]
@@ -407,13 +408,13 @@ def build_report(df: pd.DataFrame, results: dict[str, object], source: str, sour
 
     churn_rate = df['ChurnFlag'].mean() * 100
     contract_rates = (
-        df.groupby('Contract', observed=False)['ChurnFlag'].mean().mul(100).sort_values(ascending=False)
+        df.groupby('Contract')['ChurnFlag'].mean().mul(100).sort_values(ascending=False)
     )
     internet_rates = (
-        df.groupby('InternetService', observed=False)['ChurnFlag'].mean().mul(100).sort_values(ascending=False)
+        df.groupby('InternetService')['ChurnFlag'].mean().mul(100).sort_values(ascending=False)
     )
     payment_rates = (
-        df.groupby('PaymentMethod', observed=False)['ChurnFlag'].mean().mul(100).sort_values(ascending=False)
+        df.groupby('PaymentMethod')['ChurnFlag'].mean().mul(100).sort_values(ascending=False)
     )
 
     significant_rows = []
@@ -460,6 +461,7 @@ This report analyzes the IBM Telco Customer Churn data set to explain why custom
 - `{prep_stats['missing_totalcharges_dropped']}` blank `TotalCharges` values were coerced to missing and removed. These rows all belong to zero-tenure customers, so dropping them preserves a complete-case analysis without inventing bill totals.
 - Redundant service labels were standardized by converting `No phone service` to `No` in `MultipleLines` and `No internet service` to `No` in internet add-on columns. This keeps categories interpretable and prevents perfect multicollinearity in the logistic model.
 - `SeniorCitizen` was recoded to `Yes`/`No`, and the target `Churn` was encoded as `ChurnFlag` (1 = churn, 0 = stay).
+- For modeling, `PhoneService` and `InternetService` were excluded after the recoding step because the parent service flags become redundant once the child service options are collapsed into binary availability indicators.
 - The prepared analysis table was saved as `data/prepared_telco_customer_churn.csv`.
 
 ### 2. How the data was prepared for the analysis
@@ -522,7 +524,7 @@ The univariate review shows a mix of numeric and categorical predictors:
 ### 5. Logistic regression procedure
 1. Split the cleaned data into training and test sets using an 80/20 stratified split (`random_state = {SEED}`).
 2. Standardized numeric predictors (`tenure`, `MonthlyCharges`, `TotalCharges`) for the predictive model.
-3. One-hot encoded all categorical predictors with the first level dropped as the reference category.
+3. One-hot encoded all categorical predictors with the first level dropped as the reference category after excluding the redundant `PhoneService` and `InternetService` parent flags.
 4. Fit a scikit-learn logistic regression model for predictive evaluation.
 5. Reused the same transformed training design matrix in statsmodels to estimate coefficient significance, odds ratios, and confidence intervals without using holdout labels in the inferential summary.
 6. Evaluated out-of-sample classification performance with accuracy, precision, recall, and F1 score at the default **0.50 probability threshold**, and summarized ranking performance with ROC AUC.

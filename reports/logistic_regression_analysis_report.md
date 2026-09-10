@@ -14,13 +14,14 @@ This report analyzes the IBM Telco Customer Churn data set to explain why custom
 - `11` blank `TotalCharges` values were coerced to missing and removed. These rows all belong to zero-tenure customers, so dropping them preserves a complete-case analysis without inventing bill totals.
 - Redundant service labels were standardized by converting `No phone service` to `No` in `MultipleLines` and `No internet service` to `No` in internet add-on columns. This keeps categories interpretable and prevents perfect multicollinearity in the logistic model.
 - `SeniorCitizen` was recoded to `Yes`/`No`, and the target `Churn` was encoded as `ChurnFlag` (1 = churn, 0 = stay).
+- For modeling, `PhoneService` and `InternetService` were excluded after the recoding step because the parent service flags become redundant once the child service options are collapsed into binary availability indicators.
 - The prepared analysis table was saved as `data/prepared_telco_customer_churn.csv`.
 
 ### 2. How the data was prepared for the analysis
 The preparation choices match the needs of logistic regression. Logistic regression requires a binary target, numeric predictors in machine-readable form, and well-defined categorical levels. Dummy encoding was applied automatically during modeling, while numeric predictors were standardized for the predictive model so coefficient magnitudes are comparable and solver convergence is stable.
 
 ### 3. Preliminary exploration findings
-- The cleaned data contains **7,032 customers** and **19 predictors** plus the binary target.
+- The cleaned data contains **7,032 customers** and **17 predictors** plus the binary target.
 - The churn rate is **26.6%**, indicating a moderately imbalanced but still usable classification problem.
 - Contract type is strongly related to churn: **Month-to-month** customers churn at **42.7%**, while **Two year** customers churn at **2.8%**.
 - Internet service matters as well: **Fiber optic** customers have the highest churn rate at **41.9%**.
@@ -89,7 +90,7 @@ The univariate review shows a mix of numeric and categorical predictors:
 ### 5. Logistic regression procedure
 1. Split the cleaned data into training and test sets using an 80/20 stratified split (`random_state = 42`).
 2. Standardized numeric predictors (`tenure`, `MonthlyCharges`, `TotalCharges`) for the predictive model.
-3. One-hot encoded all categorical predictors with the first level dropped as the reference category.
+3. One-hot encoded all categorical predictors with the first level dropped as the reference category after excluding the redundant `PhoneService` and `InternetService` parent flags.
 4. Fit a scikit-learn logistic regression model for predictive evaluation.
 5. Reused the same transformed training design matrix in statsmodels to estimate coefficient significance, odds ratios, and confidence intervals without using holdout labels in the inferential summary.
 6. Evaluated out-of-sample classification performance with accuracy, precision, recall, and F1 score at the default **0.50 probability threshold**, and summarized ranking performance with ROC AUC.
@@ -98,27 +99,27 @@ The univariate review shows a mix of numeric and categorical predictors:
 #### Predictive performance on the holdout test set
 | Metric | Value |
 | --- | --- |
-| Accuracy | 0.804 |
-| Precision | 0.649 |
-| Recall | 0.570 |
-| F1 score | 0.607 |
-| ROC AUC | 0.836 |
+| Accuracy | 0.795 |
+| Precision | 0.638 |
+| Recall | 0.532 |
+| F1 score | 0.580 |
+| ROC AUC | 0.832 |
 
-The model achieves **80.4% accuracy** and an **ROC AUC of 0.836**, which indicates good discrimination for a business churn screen. Precision and recall are both moderate at the default **0.50 classification threshold**, which is expected because churn is the minority class and some false positives are acceptable in retention campaigns.
+The model achieves **79.5% accuracy** and an **ROC AUC of 0.832**, which indicates good discrimination for a business churn screen. Precision and recall are both moderate at the default **0.50 classification threshold**, which is expected because churn is the minority class and some false positives are acceptable in retention campaigns.
 
 #### Most statistically significant predictors
 | Feature | Coefficient | Odds ratio | p-value | Effect on churn odds |
 | --- | --- | --- | --- | --- |
-| tenure | -1.413 | 0.2435 | <0.0001 | lower |
-| Contract = Two year | -1.415 | 0.2428 | <0.0001 | lower |
-| Contract = One year | -0.762 | 0.4667 | <0.0001 | lower |
-| TotalCharges | 0.706 | 2.0262 | <0.0001 | higher |
-| PaymentMethod = Electronic check | 0.386 | 1.4704 | 0.0003 | higher |
-| PaperlessBilling = Yes | 0.289 | 1.3354 | 0.0005 | higher |
-| MultipleLines = Yes | 0.677 | 1.9689 | 0.0007 | higher |
-| InternetService = No | -2.730 | 0.0652 | 0.0028 | lower |
-| InternetService = Fiber optic | 2.682 | 14.6112 | 0.0030 | higher |
-| StreamingTV = Yes | 0.997 | 2.7090 | 0.0069 | higher |
+| Contract = Two year | -1.546 | 0.2131 | <0.0001 | lower |
+| tenure | -1.234 | 0.2913 | <0.0001 | lower |
+| MonthlyCharges | 0.579 | 1.7850 | <0.0001 | higher |
+| Contract = One year | -0.864 | 0.4216 | <0.0001 | lower |
+| OnlineSecurity = Yes | -0.499 | 0.6069 | <0.0001 | lower |
+| TechSupport = Yes | -0.466 | 0.6274 | <0.0001 | lower |
+| PaperlessBilling = Yes | 0.356 | 1.4277 | <0.0001 | higher |
+| PaymentMethod = Electronic check | 0.441 | 1.5538 | <0.0001 | higher |
+| TotalCharges | 0.527 | 1.6946 | 0.0020 | higher |
+| SeniorCitizen = Yes | 0.255 | 1.2909 | 0.0070 | higher |
 
 Interpretation highlights:
 - Longer **tenure** reduces churn odds substantially.
@@ -140,20 +141,20 @@ Interpretation highlights:
 ## Part III. Summary of Findings
 
 ### 1. Whether the data is discriminating
-Yes. The data is meaningfully discriminating because the model separates churners from non-churners with an ROC AUC of **0.836**. The probability-density plot and ROC curve show that churners receive systematically higher predicted probabilities than non-churners, even though the classes still overlap.
+Yes. The data is meaningfully discriminating because the model separates churners from non-churners with an ROC AUC of **0.832**. The probability-density plot and ROC curve show that churners receive systematically higher predicted probabilities than non-churners, even though the classes still overlap.
 
 ### 2. Variables that significantly interact with the target variable
 Using the logistic regression significance tests, the strongest variables associated with churn are:
-- `tenure`
 - `Contract = Two year`
+- `tenure`
+- `MonthlyCharges`
 - `Contract = One year`
-- `TotalCharges`
-- `PaymentMethod = Electronic check`
+- `OnlineSecurity = Yes`
+- `TechSupport = Yes`
 - `PaperlessBilling = Yes`
-- `MultipleLines = Yes`
-- `InternetService = No`
-- `InternetService = Fiber optic`
-- `StreamingTV = Yes`
+- `PaymentMethod = Electronic check`
+- `TotalCharges`
+- `SeniorCitizen = Yes`
 
 In practical business terms, customer commitment structure (contract length), billing/payment behavior, and service configuration explain the largest share of churn risk.
 
