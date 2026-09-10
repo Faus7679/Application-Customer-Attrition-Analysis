@@ -63,6 +63,9 @@ def resolve_input_path(cli_path: str | None) -> tuple[str, str]:
 
 def load_dataset(cli_path: str | None) -> tuple[pd.DataFrame, str, str]:
     source, source_label = resolve_input_path(cli_path)
+    if not source.startswith(('http://', 'https://')) and not Path(source).exists():
+        raise FileNotFoundError(f'Input file not found: {source}')
+
     if Path(source).suffix.lower() in {'.xlsx', '.xls'}:
         df = pd.read_excel(source)
     else:
@@ -369,14 +372,18 @@ def plot_model_outputs(results: dict[str, object]) -> None:
     plt.close(fig)
 
     significant = summary_frame.drop(index='const').query('`P>|z|` < 0.05').copy()
-    significant['abs_log_or'] = np.abs(np.log(significant['odds_ratio']))
-    top_or = significant.sort_values('abs_log_or', ascending=False).head(10).sort_values('odds_ratio')
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.barplot(x=top_or['odds_ratio'], y=top_or.index, orient='h', ax=ax)
-    ax.axvline(1.0, linestyle='--', color='grey')
+    if significant.empty:
+        ax.text(0.5, 0.5, 'No predictors met the p < 0.05 threshold.', ha='center', va='center')
+        ax.set_axis_off()
+    else:
+        significant['abs_log_or'] = np.abs(np.log(significant['odds_ratio']))
+        top_or = significant.sort_values('abs_log_or', ascending=False).head(10).sort_values('odds_ratio')
+        sns.barplot(x=top_or['odds_ratio'], y=top_or.index, orient='h', ax=ax)
+        ax.axvline(1.0, linestyle='--', color='grey')
+        ax.set_xlabel('Odds ratio')
+        ax.set_ylabel('Feature')
     ax.set_title('Significant odds ratios from the statistical model')
-    ax.set_xlabel('Odds ratio')
-    ax.set_ylabel('Feature')
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / 'significant_odds_ratios.png', dpi=200)
     plt.close(fig)
@@ -427,6 +434,8 @@ def build_report(df: pd.DataFrame, results: dict[str, object], source: str, sour
             format_p_value(row['P>|z|']),
             direction,
         ])
+    if not significant_rows:
+        significant_rows = [['No predictors met p < 0.05', '-', '-', '-', '-']]
 
     metrics_rows = [[
         'Accuracy', f"{metrics['accuracy']:.3f}"
@@ -443,7 +452,7 @@ def build_report(df: pd.DataFrame, results: dict[str, object], source: str, sour
     significant_bullets = '\n'.join(
         f"- `{prettify_feature_name(feature)}`"
         for feature in significant.index
-    )
+    ) or '- No predictors met the p < 0.05 threshold in the training-set inferential model.'
 
     report = f"""# Logistic Regression Analysis Report: Telecommunications Customer Attrition
 

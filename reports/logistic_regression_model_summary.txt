@@ -3,7 +3,7 @@
 Model:                        GLM                      AIC:                    4743.6844  
 Link Function:                Logit                    BIC:                    -43688.7224
 Dependent Variable:           ChurnFlag                Log-Likelihood:         -2350.8    
-Date:                         2026-09-10 17:24         LL-Null:                -3257.0    
+Date:                         2026-09-10 17:25         LL-Null:                -3257.0    
 No. Observations:             5625                     Deviance:               4701.7     
 Df Model:                     20                       Pearson chi2:           6.14e+03   
 Df Residuals:                 5604                     Scale:                  1.0000     
