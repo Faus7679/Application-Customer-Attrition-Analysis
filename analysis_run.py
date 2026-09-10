@@ -114,6 +114,7 @@ def format_p_value(value: float) -> str:
 
 
 def prettify_feature_name(feature: str) -> str:
+    feature = feature.replace('num__', '').replace('cat__', '')
     return feature.replace('_', ' = ', 1).replace('_', ' ')
 
 
@@ -244,7 +245,7 @@ def fit_models(df: pd.DataFrame) -> dict[str, object]:
                 ColumnTransformer(
                     transformers=[
                         ('num', StandardScaler(), numeric_columns),
-                        ('cat', OneHotEncoder(drop='first', handle_unknown='ignore'), categorical_columns),
+                        ('cat', OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False), categorical_columns),
                     ]
                 ),
             ),
@@ -268,7 +269,11 @@ def fit_models(df: pd.DataFrame) -> dict[str, object]:
     feature_names = pipeline.named_steps['preprocess'].get_feature_names_out()
     coefficients = pd.Series(pipeline.named_steps['model'].coef_[0], index=feature_names)
 
-    statsmodels_X_train = pd.get_dummies(X_train, drop_first=True, dtype=float)
+    statsmodels_X_train = pd.DataFrame(
+        pipeline.named_steps['preprocess'].transform(X_train),
+        columns=feature_names,
+        index=X_train.index,
+    )
     statsmodels_X_train = sm.add_constant(statsmodels_X_train)
     statsmodels_model = sm.Logit(y_train, statsmodels_X_train).fit(disp=False, maxiter=200)
     summary_frame = statsmodels_model.summary2().tables[1].copy()
@@ -337,7 +342,7 @@ def plot_model_outputs(results: dict[str, object]) -> None:
     top_coefficients = coefficients.reindex(coefficients.abs().sort_values(ascending=False).head(10).index).sort_values()
     fig, ax = plt.subplots(figsize=(8, 6))
     sns.barplot(x=top_coefficients.values, y=top_coefficients.index, orient='h', ax=ax)
-    ax.set_title('Top standardized logistic regression coefficients')
+    ax.set_title('Top logistic regression coefficients in the model feature space')
     ax.set_xlabel('Coefficient value')
     ax.set_ylabel('Encoded feature')
     fig.tight_layout()
@@ -500,14 +505,14 @@ The univariate review shows a mix of numeric and categorical predictors:
 2. Standardized numeric predictors (`tenure`, `MonthlyCharges`, `TotalCharges`) for the predictive model.
 3. One-hot encoded all categorical predictors with the first level dropped as the reference category.
 4. Fit a scikit-learn logistic regression model for predictive evaluation.
-5. Fit a second statsmodels logistic regression on the training partition to estimate coefficient significance, odds ratios, and confidence intervals without using holdout labels in the inferential summary.
-6. Evaluated out-of-sample classification performance with accuracy, precision, recall, F1 score, and ROC AUC.
+5. Reused the same transformed training design matrix in statsmodels to estimate coefficient significance, odds ratios, and confidence intervals without using holdout labels in the inferential summary.
+6. Evaluated out-of-sample classification performance with accuracy, precision, recall, and F1 score at the default **0.50 probability threshold**, and summarized ranking performance with ROC AUC.
 
 ### 6. Findings and model accuracy
 #### Predictive performance on the holdout test set
 {markdown_table(['Metric', 'Value'], metrics_rows)}
 
-The model achieves **{metrics['accuracy']:.1%} accuracy** and an **ROC AUC of {metrics['roc_auc']:.3f}**, which indicates good discrimination for a business churn screen. Precision and recall are both moderate, which is expected because churn is the minority class and some false positives are acceptable in retention campaigns.
+The model achieves **{metrics['accuracy']:.1%} accuracy** and an **ROC AUC of {metrics['roc_auc']:.3f}**, which indicates good discrimination for a business churn screen. Precision and recall are both moderate at the default **0.50 classification threshold**, which is expected because churn is the minority class and some false positives are acceptable in retention campaigns.
 
 #### Most statistically significant predictors
 {markdown_table(['Feature', 'Coefficient', 'Odds ratio', 'p-value', 'Effect on churn odds'], significant_rows)}

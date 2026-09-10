@@ -91,8 +91,8 @@ The univariate review shows a mix of numeric and categorical predictors:
 2. Standardized numeric predictors (`tenure`, `MonthlyCharges`, `TotalCharges`) for the predictive model.
 3. One-hot encoded all categorical predictors with the first level dropped as the reference category.
 4. Fit a scikit-learn logistic regression model for predictive evaluation.
-5. Fit a second statsmodels logistic regression on the training partition to estimate coefficient significance, odds ratios, and confidence intervals without using holdout labels in the inferential summary.
-6. Evaluated out-of-sample classification performance with accuracy, precision, recall, F1 score, and ROC AUC.
+5. Reused the same transformed training design matrix in statsmodels to estimate coefficient significance, odds ratios, and confidence intervals without using holdout labels in the inferential summary.
+6. Evaluated out-of-sample classification performance with accuracy, precision, recall, and F1 score at the default **0.50 probability threshold**, and summarized ranking performance with ROC AUC.
 
 ### 6. Findings and model accuracy
 #### Predictive performance on the holdout test set
@@ -104,15 +104,15 @@ The univariate review shows a mix of numeric and categorical predictors:
 | F1 score | 0.607 |
 | ROC AUC | 0.836 |
 
-The model achieves **80.4% accuracy** and an **ROC AUC of 0.836**, which indicates good discrimination for a business churn screen. Precision and recall are both moderate, which is expected because churn is the minority class and some false positives are acceptable in retention campaigns.
+The model achieves **80.4% accuracy** and an **ROC AUC of 0.836**, which indicates good discrimination for a business churn screen. Precision and recall are both moderate at the default **0.50 classification threshold**, which is expected because churn is the minority class and some false positives are acceptable in retention campaigns.
 
 #### Most statistically significant predictors
 | Feature | Coefficient | Odds ratio | p-value | Effect on churn odds |
 | --- | --- | --- | --- | --- |
-| tenure | -0.058 | 0.9441 | <0.0001 | lower |
+| tenure | -1.413 | 0.2435 | <0.0001 | lower |
 | Contract = Two year | -1.415 | 0.2428 | <0.0001 | lower |
 | Contract = One year | -0.762 | 0.4667 | <0.0001 | lower |
-| TotalCharges | 0.000 | 1.0003 | <0.0001 | higher |
+| TotalCharges | 0.706 | 2.0262 | <0.0001 | higher |
 | PaymentMethod = Electronic check | 0.386 | 1.4704 | 0.0003 | higher |
 | PaperlessBilling = Yes | 0.289 | 1.3354 | 0.0005 | higher |
 | MultipleLines = Yes | 0.677 | 1.9689 | 0.0007 | higher |
