@@ -12,7 +12,7 @@ This repository contains a reproducible logistic regression analysis of the IBM 
 
 ## Data source
 
-The script first looks for the assignment Excel workbook (`C:\Users\Yawo Faustin AZIAKPO\Downloads\CST-570-RS-WAFn-UseC-Telco-Customer-Churn.xlsx` or a copy placed in `data/`). If that file is unavailable, it uses a public mirror of the IBM Telco Customer Churn CSV and caches it in `data/WA_Fn-UseC_-Telco-Customer-Churn.csv`.
+The script first looks for a repository-local copy of the assignment Excel workbook in `data/CST-570-RS-WAFn-UseC-Telco-Customer-Churn.xlsx`. If no local workbook is present, it uses a public mirror of the IBM Telco Customer Churn CSV and caches it in `data/WA_Fn-UseC_-Telco-Customer-Churn.csv`. You can also point the workflow at any local Excel or CSV file with `--input-path`.
 
 ## Run the workflow
 

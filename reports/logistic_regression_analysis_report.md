@@ -109,16 +109,16 @@ The model achieves **80.4% accuracy** and an **ROC AUC of 0.836**, which indicat
 #### Most statistically significant predictors
 | Feature | Coefficient | Odds ratio | p-value | Effect on churn odds |
 | --- | --- | --- | --- | --- |
-| tenure | -0.061 | 0.9412 | <0.0001 | lower |
-| Contract = Two year | -1.357 | 0.2574 | <0.0001 | lower |
-| Contract = One year | -0.661 | 0.5164 | <0.0001 | lower |
+| tenure | -0.058 | 0.9441 | <0.0001 | lower |
+| Contract = Two year | -1.415 | 0.2428 | <0.0001 | lower |
+| Contract = One year | -0.762 | 0.4667 | <0.0001 | lower |
 | TotalCharges | 0.000 | 1.0003 | <0.0001 | higher |
-| PaperlessBilling = Yes | 0.342 | 1.4083 | <0.0001 | higher |
-| PaymentMethod = Electronic check | 0.304 | 1.3559 | 0.0013 | higher |
-| SeniorCitizen = Yes | 0.217 | 1.2421 | 0.0103 | higher |
-| MultipleLines = Yes | 0.448 | 1.5658 | 0.0114 | higher |
-| InternetService = No | -1.786 | 0.1676 | 0.0269 | lower |
-| InternetService = Fiber optic | 1.747 | 5.7401 | 0.0286 | higher |
+| PaymentMethod = Electronic check | 0.386 | 1.4704 | 0.0003 | higher |
+| PaperlessBilling = Yes | 0.289 | 1.3354 | 0.0005 | higher |
+| MultipleLines = Yes | 0.677 | 1.9689 | 0.0007 | higher |
+| InternetService = No | -2.730 | 0.0652 | 0.0028 | lower |
+| InternetService = Fiber optic | 2.682 | 14.6112 | 0.0030 | higher |
+| StreamingTV = Yes | 0.997 | 2.7090 | 0.0069 | higher |
 
 Interpretation highlights:
 - Longer **tenure** reduces churn odds substantially.
@@ -148,12 +148,12 @@ Using the logistic regression significance tests, the strongest variables associ
 - `Contract = Two year`
 - `Contract = One year`
 - `TotalCharges`
-- `PaperlessBilling = Yes`
 - `PaymentMethod = Electronic check`
-- `SeniorCitizen = Yes`
+- `PaperlessBilling = Yes`
 - `MultipleLines = Yes`
 - `InternetService = No`
 - `InternetService = Fiber optic`
+- `StreamingTV = Yes`
 
 In practical business terms, customer commitment structure (contract length), billing/payment behavior, and service configuration explain the largest share of churn risk.
 

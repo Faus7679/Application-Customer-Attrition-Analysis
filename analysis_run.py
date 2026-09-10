@@ -32,7 +32,6 @@ DATA_DIR = REPO_ROOT / 'data'
 REPORTS_DIR = REPO_ROOT / 'reports'
 FIGURES_DIR = REPORTS_DIR / 'figures'
 DEFAULT_REMOTE_URL = 'https://raw.githubusercontent.com/treselle-systems/customer_churn_analysis/master/WA_Fn-UseC_-Telco-Customer-Churn.csv'
-DEFAULT_WINDOWS_PATH = r'C:\Users\Yawo Faustin AZIAKPO\Downloads\CST-570-RS-WAFn-UseC-Telco-Customer-Churn.xlsx'
 RAW_DATA_PATH = DATA_DIR / 'WA_Fn-UseC_-Telco-Customer-Churn.csv'
 PREPARED_DATA_PATH = DATA_DIR / 'prepared_telco_customer_churn.csv'
 REPORT_PATH = REPORTS_DIR / 'logistic_regression_analysis_report.md'
@@ -50,10 +49,6 @@ def ensure_directories() -> None:
 def resolve_input_path(cli_path: str | None) -> tuple[str, str]:
     if cli_path:
         return cli_path, 'user supplied file'
-
-    windows_path = Path(DEFAULT_WINDOWS_PATH)
-    if windows_path.exists():
-        return str(windows_path), 'assignment Excel path'
 
     local_excel = DATA_DIR / 'CST-570-RS-WAFn-UseC-Telco-Customer-Churn.xlsx'
     if local_excel.exists():
@@ -81,7 +76,7 @@ def prepare_dataset(raw_df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]
     df.columns = [column.strip() for column in df.columns]
 
     for column in df.select_dtypes(include='object').columns:
-        df[column] = df[column].astype(str).str.strip()
+        df[column] = df[column].map(lambda value: value.strip() if isinstance(value, str) else value)
 
     df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
     missing_totalcharges = int(df['TotalCharges'].isna().sum())
@@ -273,9 +268,9 @@ def fit_models(df: pd.DataFrame) -> dict[str, object]:
     feature_names = pipeline.named_steps['preprocess'].get_feature_names_out()
     coefficients = pd.Series(pipeline.named_steps['model'].coef_[0], index=feature_names)
 
-    statsmodels_X = pd.get_dummies(X, drop_first=True, dtype=float)
-    statsmodels_X = sm.add_constant(statsmodels_X)
-    statsmodels_model = sm.Logit(y, statsmodels_X).fit(disp=False, maxiter=200)
+    statsmodels_X_train = pd.get_dummies(X_train, drop_first=True, dtype=float)
+    statsmodels_X_train = sm.add_constant(statsmodels_X_train)
+    statsmodels_model = sm.Logit(y_train, statsmodels_X_train).fit(disp=False, maxiter=200)
     summary_frame = statsmodels_model.summary2().tables[1].copy()
     summary_frame['odds_ratio'] = np.exp(summary_frame['Coef.'])
     summary_frame['ci_lower_or'] = np.exp(summary_frame['Coef.'] - 1.96 * summary_frame['Std.Err.'])
@@ -329,7 +324,10 @@ def plot_model_outputs(results: dict[str, object]) -> None:
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(7, 5))
-    score_df = pd.DataFrame({'Actual churn': y_test.map({0: 'No', 1: 'Yes'}), 'Predicted probability': y_prob})
+    score_df = pd.DataFrame({
+        'Actual churn': y_test.map({0: 'No', 1: 'Yes'}).to_numpy(),
+        'Predicted probability': y_prob,
+    })
     sns.kdeplot(data=score_df, x='Predicted probability', hue='Actual churn', common_norm=False, fill=True, ax=ax)
     ax.set_title('Predicted churn probabilities by actual class')
     fig.tight_layout()
