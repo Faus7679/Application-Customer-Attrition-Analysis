@@ -500,7 +500,7 @@ The univariate review shows a mix of numeric and categorical predictors:
 2. Standardized numeric predictors (`tenure`, `MonthlyCharges`, `TotalCharges`) for the predictive model.
 3. One-hot encoded all categorical predictors with the first level dropped as the reference category.
 4. Fit a scikit-learn logistic regression model for predictive evaluation.
-5. Fit a second statsmodels logistic regression on the full cleaned data to estimate coefficient significance, odds ratios, and confidence intervals.
+5. Fit a second statsmodels logistic regression on the training partition to estimate coefficient significance, odds ratios, and confidence intervals without using holdout labels in the inferential summary.
 6. Evaluated out-of-sample classification performance with accuracy, precision, recall, F1 score, and ROC AUC.
 
 ### 6. Findings and model accuracy
@@ -515,9 +515,9 @@ The model achieves **{metrics['accuracy']:.1%} accuracy** and an **ROC AUC of {m
 Interpretation highlights:
 - Longer **tenure** reduces churn odds substantially.
 - **One-year** and **two-year contracts** are associated with much lower churn odds than month-to-month service.
-- **Electronic check** payment is associated with higher churn odds.
-- **Paperless billing** and being a **senior citizen** are associated with higher churn odds after controlling for the other variables.
-- Lower-support service profiles, especially lacking **TechSupport** or comparable stabilizing features, are directionally riskier even when not every dummy is significant at the 0.05 level.
+- **Electronic check**, **paperless billing**, and **multiple lines** are associated with higher churn odds.
+- **Fiber optic** service aligns with higher churn odds, while customers without internet service are materially less likely to churn than the DSL reference group.
+- Streaming-oriented service bundles can remain churn-prone even after controlling for contract and billing features.
 
 ![Confusion matrix](figures/confusion_matrix.png)
 

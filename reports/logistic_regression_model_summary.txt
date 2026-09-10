@@ -2,7 +2,7 @@
 =====================================================================================
 Model:                     Logit                   Method:                  MLE      
 Dependent Variable:        ChurnFlag               Pseudo R-squared:        0.290    
-Date:                      2026-09-10 17:20        AIC:                     4675.4538
+Date:                      2026-09-10 17:21        AIC:                     4675.4538
 No. Observations:          5625                    BIC:                     4834.6933
 Df Model:                  23                      Log-Likelihood:          -2313.7  
 Df Residuals:              5601                    LL-Null:                 -3257.0  
