@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
 
 import matplotlib
 matplotlib.use('Agg')
@@ -47,6 +48,16 @@ def ensure_directories() -> None:
         directory.mkdir(parents=True, exist_ok=True)
 
 
+def is_remote_source(source: str) -> bool:
+    return source.startswith(('http://', 'https://'))
+
+
+def is_excel_source(source: str) -> bool:
+    if is_remote_source(source):
+        return Path(urlparse(source).path).suffix.lower() in {'.xlsx', '.xls'}
+    return Path(source).suffix.lower() in {'.xlsx', '.xls'}
+
+
 def resolve_input_path(cli_path: str | None) -> tuple[str, str]:
     if cli_path:
         return cli_path, 'user supplied file'
@@ -63,10 +74,10 @@ def resolve_input_path(cli_path: str | None) -> tuple[str, str]:
 
 def load_dataset(cli_path: str | None) -> tuple[pd.DataFrame, str, str]:
     source, source_label = resolve_input_path(cli_path)
-    if not source.startswith(('http://', 'https://')) and not Path(source).exists():
+    if not is_remote_source(source) and not Path(source).exists():
         raise FileNotFoundError(f'Input file not found: {source}')
 
-    if Path(source).suffix.lower() in {'.xlsx', '.xls'}:
+    if is_excel_source(source):
         df = pd.read_excel(source)
     else:
         df = pd.read_csv(source)
@@ -125,7 +136,7 @@ def prettify_feature_name(feature: str) -> str:
 
 def display_source_for_report(source: str, source_label: str) -> str:
     source_path = Path(source)
-    if source.startswith('http://') or source.startswith('https://'):
+    if is_remote_source(source):
         return f'`{source}` ({source_label})'
     try:
         relative_path = source_path.resolve().relative_to(REPO_ROOT.resolve())
@@ -371,7 +382,7 @@ def plot_model_outputs(results: dict[str, object]) -> None:
     fig.savefig(FIGURES_DIR / 'top_model_coefficients.png', dpi=200)
     plt.close(fig)
 
-    significant = summary_frame.drop(index='const').query('`P>|z|` < 0.05').copy()
+    significant = summary_frame.drop(index='const', errors='ignore').query('`P>|z|` < 0.05').copy()
     fig, ax = plt.subplots(figsize=(8, 6))
     if significant.empty:
         ax.text(0.5, 0.5, 'No predictors met the p < 0.05 threshold.', ha='center', va='center')
@@ -402,7 +413,7 @@ def create_visualizations(df: pd.DataFrame, results: dict[str, object]) -> None:
 def build_report(df: pd.DataFrame, results: dict[str, object], source: str, source_label: str, prep_stats: dict[str, int]) -> str:
     metrics = results['metrics']
     summary_frame = results['summary_frame']
-    significant = summary_frame.drop(index='const').query('`P>|z|` < 0.05').copy()
+    significant = summary_frame.drop(index='const', errors='ignore').query('`P>|z|` < 0.05').copy()
     significant = significant.sort_values('P>|z|').head(10)
     predictor_count = len(results['numeric_columns']) + len(results['categorical_columns'])
     source_display = display_source_for_report(source, source_label)
@@ -550,9 +561,9 @@ The model achieves **{metrics['accuracy']:.1%} accuracy** and an **ROC AUC of {m
 Interpretation highlights:
 - Longer **tenure** reduces churn odds substantially.
 - **One-year** and **two-year contracts** are associated with much lower churn odds than month-to-month service.
-- **Electronic check**, **paperless billing**, and **multiple lines** are associated with higher churn odds.
-- **Fiber optic** service aligns with higher churn odds, while customers without internet service are materially less likely to churn than the DSL reference group.
-- Streaming-oriented service bundles can remain churn-prone even after controlling for contract and billing features.
+- Higher **monthly charges**, **electronic check** payment, and **paperless billing** are associated with higher churn odds.
+- Customers with **online security** and **technical support** are materially less likely to churn than otherwise similar customers without those services.
+- **Senior citizens** remain somewhat more likely to churn after controlling for contract, tenure, billing, and service bundle differences.
 
 ![Confusion matrix](figures/confusion_matrix.png)
 

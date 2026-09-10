@@ -124,9 +124,9 @@ The model achieves **79.5% accuracy** and an **ROC AUC of 0.832**, which indicat
 Interpretation highlights:
 - Longer **tenure** reduces churn odds substantially.
 - **One-year** and **two-year contracts** are associated with much lower churn odds than month-to-month service.
-- **Electronic check**, **paperless billing**, and **multiple lines** are associated with higher churn odds.
-- **Fiber optic** service aligns with higher churn odds, while customers without internet service are materially less likely to churn than the DSL reference group.
-- Streaming-oriented service bundles can remain churn-prone even after controlling for contract and billing features.
+- Higher **monthly charges**, **electronic check** payment, and **paperless billing** are associated with higher churn odds.
+- Customers with **online security** and **technical support** are materially less likely to churn than otherwise similar customers without those services.
+- **Senior citizens** remain somewhat more likely to churn after controlling for contract, tenure, billing, and service bundle differences.
 
 ![Confusion matrix](figures/confusion_matrix.png)
 
